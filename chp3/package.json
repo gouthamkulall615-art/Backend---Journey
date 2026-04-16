@@ -7,7 +7,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --env-file=.env server2.js"
+    "start": "nodemon --env-file=.env server3.js"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
