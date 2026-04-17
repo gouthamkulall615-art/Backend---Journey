@@ -1,6 +1,4 @@
-import { createServer, get } from "http";
-import { json } from "stream/consumers";
-
+import { createServer } from "http";
 const PORT = process.env.PORT || 8000;
 const products = [
   {
@@ -25,14 +23,45 @@ const logger = (req, res, next) => {
   next();
 };
 
-const jsonMiddleware = (req, res,next) => {
+const jsonMiddleware = (req, res, next) => {
   res.setHeader("content-type", "application/json");
   next();
 };
 
-const getProductsHandler = (req, res,next) => {
+const getProductsHandler = (req, res, next) => {
   res.write(JSON.stringify(products));
-  next();
+  res.end();
+};
+
+const createProductHandler = (req, res) => {
+  let body = "";
+  req.on("data", (chunk) => {
+    body += chunk.toString();
+  });
+  req.on("end", () => {
+    try {
+      const newProducts = JSON.parse(body);
+      if (!newProducts.id || !newProducts.name) {
+        res.statusCode = 400;
+        res.write(JSON.stringify({ message: "Invalid product data" }));
+        return res.end();
+      }
+      products.push(newProducts);
+      res.statusCode = 201;
+      res.write(JSON.stringify(newProducts));
+      res.end();
+    } catch (error) {
+      res.statusCode = 400;
+      res.write(JSON.stringify({ message: "Invalid JSON format" }));
+      res.end();
+    }
+  });
+};
+
+const notFoundHandler = (req, res) => {
+  res.statusCode = 404;
+  res.write(JSON.stringify({ message: "route is not found" }));
+  res.end();
 };
 
 const getProductsByIdHandler = (req, res) => {
@@ -52,11 +81,11 @@ const server = createServer((req, res) => {
       if (req.url === "/api/products" && req.method == "GET") {
         getProductsHandler(req, res);
       } else if (
-        req.url.match(/\/api\/users\/([0-9]+)/) &&
+        req.url.match(/\/api\/products\/([0-9]+)/) &&
         req.method === "GET"
       ) {
         getProductsByIdHandler(req, res);
-      } else if (req.url === "api/products" && req.method === "POST") {
+      } else if (req.url === "/api/products" && req.method === "POST") {
         createProductHandler(req, res);
       } else {
         notFoundHandler(req, res);
