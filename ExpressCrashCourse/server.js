@@ -1,5 +1,7 @@
-const express = require("express");
-const path = require("path");
+import express from "express";
+import path from "path";
+import posts from "./routes/posts.js";
+
 const app = express();
 const PORT = process.env.PORT || 8000;
 
@@ -22,44 +24,11 @@ const PORT = process.env.PORT || 8000;
 //static folder creatation:helps in not creating route for each file
 
 // app.use(express.static(path.join(__dirname, "public"))); //for the about to be fetched we have to search the about .html
+//body parser middle ware
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-let posts = [
-  {
-    id: 1,
-    title: "post one",
-  },
-  {
-    id: 2,
-    title: "post two",
-  },
-  {
-    id: 3,
-    title: "post three",
-  },
-];
-
-//get all posts
-
-app.get("/api/posts", (req, res) => {
-  const limit = parseInt(req.query.limit);
-  if (!isNaN(limit) && limit > 0) {
-    res.status(200).json(posts.slice(0, limit));
-  } else {
-    res.status(200).json(posts);
-  }
-});
-
-//get a single post
-app.get("/api/posts/:id", (req, res) => {
-  //   console.log(req.params.id);
-
-  const id = parseInt(req.params.id);
-  const post = posts.find((post) => post.id === id);
-  if (!post) {
-    res.status(404).json({ msg: `a post with the ${id} is not found` });
-  } else {
-    res.status(200).json(post);
-  }
-});
+//routes
+app.use("/api/posts", posts);
 
 app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
