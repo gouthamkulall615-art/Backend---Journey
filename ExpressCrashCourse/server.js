@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
-import posts from "./routes/posts.js";
+// import posts from "./routes/posts.js";
+import members from "./routes/members.js"
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 //routes
-app.use("/api/posts", posts);
+// app.use("/api/posts", posts);
+app.use("/api/members",members)
 
 app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
