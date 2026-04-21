@@ -28,9 +28,9 @@ let members = [
 router.get("/", (req, res) => {
   const { role } = req.query;
   if (role) {
-    const filtered = members.filter((m) => {
-      m.role.toLowerCase() === role.toLowerCase();
-    });
+    const filtered = members.filter(
+      (m) => m.role.toLowerCase() === role.toLowerCase(),
+    );
     return res.status(200).json(filtered);
   }
   const activeMembers = members.filter((m) => m.status === "active");
@@ -49,10 +49,11 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
+  console.log("BODY:", req.body);
   const { name, role } = req.body;
   if (!name || !role) {
     return res
-      .status(404)
+      .status(400)
       .json({ message: "please enter the name and role of the member" });
   }
   const newMember = {
@@ -68,7 +69,7 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
   const member = members.find((m) => m.id === id);
   if (!member) {
     return res.status(404).json({ message: `member with id ${id} not found` });
@@ -86,7 +87,7 @@ router.put("/:id", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
   const member = members.find((m) => m.id === id);
   if (!member) {
     return res.status(404).json({ message: `member with id ${id} not found` });
