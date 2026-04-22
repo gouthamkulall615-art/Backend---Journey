@@ -1,0 +1,424 @@
+================================================================================
+  EXPRESS.JS CRASH COURSE - CHEATSHEET (Brad Traversy)
+  YouTube: https://youtu.be/CnH3kAXSrmU
+  GitHub Code: https://github.com/bradtraversy/express-crash
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. SETUP  (don't forget these steps!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Prerequisites: Node.js installed  →  node -v  /  npm -v
+
+  mkdir my-project
+  cd my-project
+  npm init -y                    ← creates package.json
+  npm install express            ← installs express
+  npm install dotenv             ← for .env variables (install separately)
+
+  ─── package.json scripts ──────────────────────────────────────────────────
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"   ← --watch flag auto-restarts (Node 18+)
+  }
+  Run with:  npm run dev
+
+  ─── To use ES Modules (import/export) instead of CommonJS ─────────────────
+  Add to package.json:  "type": "module"
+  Then use:  import express from 'express'   (instead of require)
+  ⚠️  __dirname is NOT available in ES Modules — see fix in section 9
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. BASIC SERVER  (server.js)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  import express from 'express'
+  import dotenv from 'dotenv'
+  dotenv.config()                         ← must call before using process.env
+
+  const app = express()
+  const PORT = process.env.PORT || 8000
+
+  app.get('/', (req, res) => {
+    res.send('Hello World')
+  })
+
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ENVIRONMENT VARIABLES  (.env)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Create a file named .env in root:
+    PORT=8000
+    NODE_ENV=development
+
+  Access in code:  process.env.PORT
+  ⚠️  Always add .env to .gitignore — never commit secrets!
+
+  .gitignore contents:
+    node_modules
+    .env
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. SENDING RESPONSES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  res.send('text')                        ← plain text / HTML string
+  res.json({ id: 1, name: 'Alice' })      ← JSON response (sets content-type)
+  res.sendFile(path)                      ← send an HTML file
+  res.status(404).json({ msg: 'Not found' })   ← set status + JSON
+
+  ─── sendFile example ──────────────────────────────────────────────────────
+  import path from 'path'
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'))
+  })
+
+  ─── Static files (CSS, JS, images) ────────────────────────────────────────
+  app.use(express.static('public'))       ← serve everything in /public folder
+  ⚠️  Put this BEFORE your routes
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. REQUEST PARAMS & QUERY STRINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ─── Route Params  (:id style) ─────────────────────────────────────────────
+  app.get('/api/posts/:id', (req, res) => {
+    const id = req.params.id              ← access with req.params
+    res.json({ id })
+  })
+  URL: /api/posts/5   →   id = "5"  (always a string!)
+
+  ─── Query Strings (?key=value style) ──────────────────────────────────────
+  app.get('/api/posts', (req, res) => {
+    const limit = req.query.limit         ← access with req.query
+    res.json({ limit })
+  })
+  URL: /api/posts?limit=10   →   limit = "10"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. REQUEST BODY  (POST / PUT data)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  Must add body-parsing middleware BEFORE routes or req.body will be empty!
+
+  app.use(express.json())                 ← parse JSON bodies
+  app.use(express.urlencoded({ extended: false }))  ← parse form data
+
+  app.post('/api/posts', (req, res) => {
+    const { title, body } = req.body
+    res.status(201).json({ title, body })
+  })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. FULL CRUD ROUTES  (GET / POST / PUT / DELETE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GET    /api/posts          → get all posts
+  GET    /api/posts/:id      → get single post
+  POST   /api/posts          → create post   (body: { title, body })
+  PUT    /api/posts/:id      → update post   (body: { title, body })
+  DELETE /api/posts/:id      → delete post
+
+  ─── Example DELETE ────────────────────────────────────────────────────────
+  app.delete('/api/posts/:id', (req, res) => {
+    const post = posts.find(p => p.id === parseInt(req.params.id))
+    if (!post) return res.status(404).json({ msg: 'Post not found' })
+    posts = posts.filter(p => p.id !== parseInt(req.params.id))
+    res.json({ msg: 'Post deleted' })
+  })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. ROUTE FILES  (splitting routes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ─── routes/posts.js ───────────────────────────────────────────────────────
+  import express from 'express'
+  const router = express.Router()
+
+  router.get('/', (req, res) => { ... })         ← path is now just '/'
+  router.get('/:id', (req, res) => { ... })
+  router.post('/', (req, res) => { ... })
+  router.put('/:id', (req, res) => { ... })
+  router.delete('/:id', (req, res) => { ... })
+
+  export default router
+
+  ─── server.js ─────────────────────────────────────────────────────────────
+  import postsRouter from './routes/posts.js'    ← .js extension needed in ESM
+  app.use('/api/posts', postsRouter)             ← prefix all routes
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. CONTROLLERS  (keeping routes clean)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ─── controllers/postController.js ─────────────────────────────────────────
+  // @desc   Get all posts
+  // @route  GET /api/posts
+  const getPosts = (req, res) => {
+    res.json(posts)
+  }
+
+  export { getPosts, getPost, createPost, updatePost, deletePost }
+
+  ─── routes/posts.js ───────────────────────────────────────────────────────
+  import { getPosts, getPost, createPost, updatePost, deletePost }
+    from '../controllers/postController.js'
+
+  router.get('/', getPosts)
+  router.get('/:id', getPost)
+  router.post('/', createPost)
+  router.put('/:id', updatePost)
+  router.delete('/:id', deletePost)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. MIDDLEWARE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Middleware = function with (req, res, next)  — runs between req and response
+  ⚠️  Order matters! Middleware runs top-to-bottom. Must call next() to continue.
+
+  ─── Built-in middleware ────────────────────────────────────────────────────
+  app.use(express.json())
+  app.use(express.urlencoded({ extended: false }))
+  app.use(express.static('public'))
+
+  ─── Custom middleware ──────────────────────────────────────────────────────
+  const logger = (req, res, next) => {
+    console.log(`${req.method} ${req.url}`)
+    next()                                ← don't forget next()!
+  }
+  app.use(logger)                         ← apply globally
+  app.get('/route', logger, handler)      ← apply to one route only
+
+  ─── middleware/logger.js ──────────────────────────────────────────────────
+  const logger = (req, res, next) => {
+    console.log(`${req.method} ${req.protocol}://${req.get('host')}${req.url}`)
+    next()
+  }
+  export default logger
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. ERROR HANDLING MIDDLEWARE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  Error middleware has 4 params: (err, req, res, next) — all 4 required!
+  ⚠️  Must be placed AFTER all routes in server.js
+
+  ─── middleware/error.js ───────────────────────────────────────────────────
+  const errorHandler = (err, req, res, next) => {
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode
+    res.status(statusCode).json({
+      msg: err.message,
+      stack: process.env.NODE_ENV === 'production' ? null : err.stack
+    })
+  }
+  export default errorHandler
+
+  ─── Triggering the error handler ──────────────────────────────────────────
+  app.get('/api/posts/:id', (req, res, next) => {
+    const post = posts.find(p => p.id === parseInt(req.params.id))
+    if (!post) {
+      res.status(404)
+      return next(new Error('Post not found'))   ← pass to error handler
+    }
+    res.json(post)
+  })
+
+  ─── Catch-all 404 (put before error handler) ──────────────────────────────
+  app.use((req, res, next) => {
+    const error = new Error(`Not Found - ${req.originalUrl}`)
+    res.status(404)
+    next(error)
+  })
+
+  ─── server.js — add at the very end ───────────────────────────────────────
+  import errorHandler from './middleware/error.js'
+  app.use(errorHandler)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. __dirname WORKAROUND  (ES Modules only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  __dirname and __filename don't exist in ES Modules. Use this instead:
+
+  import { fileURLToPath } from 'url'
+  import path from 'path'
+
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname  = path.dirname(__filename)
+
+  Then use normally:  path.join(__dirname, 'public', 'index.html')
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. EJS TEMPLATE ENGINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  npm install ejs
+
+  ─── Setup ─────────────────────────────────────────────────────────────────
+  app.set('view engine', 'ejs')           ← tell express to use EJS
+  ⚠️  EJS looks for templates in /views folder by default
+
+  ─── Render a view ─────────────────────────────────────────────────────────
+  app.get('/', (req, res) => {
+    res.render('index', { title: 'Home', posts })   ← pass data as 2nd arg
+  })
+
+  ─── views/index.ejs ───────────────────────────────────────────────────────
+  <h1><%= title %></h1>               ← output variable
+
+  <% posts.forEach(post => { %>       ← JS logic (no output)
+    <p><%= post.title %></p>
+  <% }) %>
+
+  ─── Partials (reusable header/footer) ─────────────────────────────────────
+  <%- include('partials/header') %>   ← include another EJS file
+  Create file: views/partials/header.ejs
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. FRONTEND → API  (fetch from browser)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ─── GET request ───────────────────────────────────────────────────────────
+  const res  = await fetch('/api/posts')
+  const data = await res.json()
+
+  ─── POST request ──────────────────────────────────────────────────────────
+  const res = await fetch('/api/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'My Post', body: 'Hello' })
+  })
+  const data = await res.json()
+
+  ─── Submit HTML form to API ────────────────────────────────────────────────
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const data = Object.fromEntries(formData)
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+  })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. POSTMAN QUICK TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For POST/PUT requests in Postman:
+    → Body tab → raw → JSON
+    → Set header Content-Type: application/json  (Postman usually does auto)
+    → Send: { "title": "Test", "body": "Hello" }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. FINAL server.js STRUCTURE  (complete order)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  import express     from 'express'
+  import dotenv      from 'dotenv'
+  import path        from 'path'
+  import { fileURLToPath } from 'url'
+  import postsRouter from './routes/posts.js'
+  import logger      from './middleware/logger.js'
+  import errorHandler from './middleware/error.js'
+
+  dotenv.config()
+
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname  = path.dirname(__filename)
+
+  const app  = express()
+  const PORT = process.env.PORT || 8000
+
+  // 1. Static files
+  app.use(express.static(path.join(__dirname, 'public')))
+
+  // 2. Body parsers
+  app.use(express.json())
+  app.use(express.urlencoded({ extended: false }))
+
+  // 3. Custom middleware
+  app.use(logger)
+
+  // 4. View engine
+  app.set('view engine', 'ejs')
+
+  // 5. Routes
+  app.use('/api/posts', postsRouter)
+
+  // 6. Catch-all 404
+  app.use((req, res, next) => {
+    const error = new Error(`Not Found - ${req.originalUrl}`)
+    res.status(404)
+    next(error)
+  })
+
+  // 7. Error handler  ← must be last!
+  app.use(errorHandler)
+
+  app.listen(PORT, () => console.log(`Server on port ${PORT}`))
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  my-project/
+  ├── controllers/
+  │   └── postController.js
+  ├── middleware/
+  │   ├── logger.js
+  │   └── error.js
+  ├── public/
+  │   ├── index.html
+  │   └── js/
+  │       └── main.js
+  ├── routes/
+  │   └── posts.js
+  ├── views/
+  │   ├── index.ejs
+  │   └── partials/
+  │       └── header.ejs
+  ├── .env
+  ├── .gitignore
+  ├── package.json
+  └── server.js
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ⚠️  COMMON MISTAKES / THINGS TO REMEMBER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] dotenv.config() must be called BEFORE process.env.PORT etc.
+  [ ] app.use(express.json()) must be BEFORE routes or req.body = undefined
+  [ ] app.use(express.static(...)) should be BEFORE routes
+  [ ] Error handler needs 4 params: (err, req, res, next) — all 4!
+  [ ] Error handler must be the LAST app.use() in server.js
+  [ ] Call next() in middleware or the request hangs forever
+  [ ] In ES Modules: add .js extension to all local imports
+  [ ] In ES Modules: __dirname not available — use fileURLToPath workaround
+  [ ] req.params.id is a STRING — use parseInt() when comparing to numbers
+  [ ] Add node_modules and .env to .gitignore before first commit
+  [ ] npm run dev (not npm start) for development with --watch
+
+================================================================================

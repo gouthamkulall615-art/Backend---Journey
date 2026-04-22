@@ -1,7 +1,10 @@
 import express from "express";
 import path from "path";
-// import posts from "./routes/posts.js";
-import members from "./routes/members.js"
+import posts from "./routes/posts.js";
+// import members from "./routes/members.js"
+import logger from "./middleware/logger.js";
+import errorHandler from "./middleware/error.js";
+import notfound from "./middleware/notfound.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -28,9 +31,16 @@ const PORT = process.env.PORT || 8000;
 //body parser middle ware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+//logger middelware
+app.use(logger);
 
 //routes
-// app.use("/api/posts", posts);
-app.use("/api/members",members)
+app.use("/api/posts", posts);
+
+//error handler
+app.use(notfound);
+app.use(errorHandler);
+
+// app.use("/api/members",members)
 
 app.listen(PORT, () => console.log(`server is running on port ${PORT}`));
