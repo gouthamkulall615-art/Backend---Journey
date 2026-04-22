@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import posts from "./routes/posts.js";
+import { fileURLToPath } from "url";
 // import members from "./routes/members.js"
 import logger from "./middleware/logger.js";
 import errorHandler from "./middleware/error.js";
@@ -8,6 +9,8 @@ import notfound from "./middleware/notfound.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+const __filename=fileURLToPath(import.meta.url)
+const __dirname=path.dirname(__filename)
 
 // app.get("/", (req, res) => {
 // res.send("hello world")
@@ -33,6 +36,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 //logger middelware
 app.use(logger);
+
+//setup static folder
+app.use(express.static(path.join(__dirname, "public")));
 
 //routes
 app.use("/api/posts", posts);
