@@ -30,7 +30,7 @@ const PORT = process.env.PORT || 8000;
 // app.use(express.static(path.join(__dirname, "public"))); //for the about to be fetched we have to search the about .html
 //body parser middle ware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 //logger middelware
 app.use(logger);
 

@@ -5,7 +5,7 @@ import {
   getPost,
   getPosts,
   updatePost,
-} from "../controllers/postControllers";
+} from "../controllers/postControllers.js";
 const router = express.Router();
 
 console.log("POSTS FILE LOADED");
