@@ -144,6 +144,11 @@ export async function refreshToken(req, res) {
     },
   );
 
+  const newRefreshTokenHash = crypto
+    .createHash("sha256")
+    .update(newRefreshToken)
+    .digest("hex");
+
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
     secure: true,
