@@ -21,7 +21,12 @@
 
 // console.log(path.parse(__filename));
 
+const fs = require("fs");
+const textIn = fs.readFileSync("./input.txt", "utf-8");
+console.log(textIn);
 
-const fs=require('fs')
-const hello = "Hello world";
-console.log(hello);
+const textOut=`This is what we know about the avocado: ${textIn}.\nCreated on ${Date.now()}`
+fs.writeFileSync('./ouput.txt',textOut)
+console.log("file Written")
+// const hello = "Hello world";
+// console.log(hello);
