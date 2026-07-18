@@ -1,0 +1,1 @@
+Every Node.js file is treated as a separate module.
