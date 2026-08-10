@@ -6,15 +6,16 @@
   "author": "goutham",
   "type": "commonjs",
   "main": "app.js",
- "scripts": {
-  "start:dev": "set NODE_NO_WARNINGS=1&& nodemon server.js",
-  "start:prod": "set NODE_NO_WARNINGS=1&& cross-env NODE_ENV=production nodemon server.js"
-},
+  "scripts": {
+    "start:dev": "set NODE_NO_WARNINGS=1&& nodemon server.js",
+    "start:prod": "set NODE_NO_WARNINGS=1&& cross-env NODE_ENV=production nodemon server.js"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
     "mongoose": "^5.13.23",
-    "morgan": "^1.11.0"
+    "morgan": "^1.11.0",
+    "slugify": "^1.6.9"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
