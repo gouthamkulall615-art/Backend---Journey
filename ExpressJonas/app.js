@@ -28,7 +28,7 @@ app.all('*', (req, res, next) => {
   // err.status = 'fail';
   // err.statusCode = 404;
 
-  next(new AppError(`Cant find ${req.originalUrl} on this server`), 404);
+  next(new AppError(`Cant find ${req.originalUrl} on this server`, 404));
 });
 
 //Error handling middelware
