@@ -9,9 +9,10 @@
   "scripts": {
     "start:dev": "set NODE_NO_WARNINGS=1&& nodemon server.js",
     "start:prod": "set NODE_NO_WARNINGS=1&& cross-env NODE_ENV=production nodemon server.js",
-    "debug":"ndb server.js"
+    "debug": "ndb server.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
     "mongoose": "^5.13.23",
