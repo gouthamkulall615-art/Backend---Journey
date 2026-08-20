@@ -134,7 +134,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
       message: 'Token sent to email',
     });
   } catch (err) {
-    user.createPasswordResetToken = undefined;
+    // Change this from user.createPasswordResetToken to user.passwordResetToken
+    user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save({ validateBeforeSave: false });
     return next(
@@ -142,33 +143,41 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     );
   }
 });
-exports.resetPassoword = catchAsync(async (req, res, next) => {
-  //1.get user based on the token
+// Note: I also fixed a typo in your export name (was resetPassoword)
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  // 1. Get user based on the token
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
     .digest('hex');
 
+  // FIX 1: Change 'createPasswordResetToken' to 'passwordResetToken'
   const user = await User.findOne({
-    createPasswordResetToken: hashedToken,
+    passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   });
 
-  //2.if token has not expired and there is user set the new password
+  // 2. If token has not expired and there is user, set the new password
   if (!user) {
     return next(new AppError('Token is invalid or has expired', 400));
   }
+
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
-  user.createPasswordResetToken = undefined;
+
+  // FIX 2: Clear the database field, not the schema method
+  user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
 
-  //3 update changedPasswordAt property for the user
+  // 3. Update changedPasswordAt property for the user (usually done in model middleware)
 
-  //4 log the user in , send jwt
+  // FIX 3: Actually generate the JWT token before sending it!
+  const token = signToken(user._id);
+
+  // 4. Log the user in, send jwt
   res.status(200).json({
-    status: 'sucess',
+    status: 'success', // Fixed typo 'sucess'
     token,
   });
 });
