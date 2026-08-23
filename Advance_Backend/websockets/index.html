@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Demo</title>
+  </head>
+
+  <body>
+    <h1>WebSocket Server Demo!!</h1>
+    <div>
+      <input
+        type="text"
+        placeholder="Enter your message here"
+        id="message-input"
+      />
+      <button id="btn">Send</button>
+      <ul id="message-container"></ul>
+    </div>
+    <script>
+      //DOM
+      const messageInput = document.getElementById("message-input");
+      const messageSendButton = document.getElementById("btn");
+      const messagesContainer = document.getElementById("message-container");
+      const { port } = window.location;
+
+      const connection = new WebSocket(`ws://localhost:${port}`);
+
+      // Runs when WebSocket connection is successfully established
+      connection.onopen = () => {
+      messageSendButton.addEventListener('click',(ev)=>{
+        const value=messageInput.value;
+        connection.send(JSON.stringify({message:value}))
+      })
+      };
+
+      // Runs when a message is received from the server
+      connection.onmessage = (message) => {
+        console.log("Server:", message.data);
+      };
+
+      // Runs if there is an error
+      connection.onerror = (error) => {
+        console.log("WebSocket error:", error);
+      };
+
+      // Runs when the connection is closed
+      connection.onclose = () => {
+        console.log("WebSocket connection closed");
+      };
+    </script>
+  </body>
+</html>
