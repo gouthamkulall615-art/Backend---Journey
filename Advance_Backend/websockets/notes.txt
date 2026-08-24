@@ -1,0 +1,774 @@
+WEBSOCKETS + VERTICAL SCALING + HORIZONTAL SCALING + REDIS
+
+1. WHAT ARE WEBSOCKETS?
+
+HTTP normally works using a request-response model:
+
+    CLIENT                         SERVER
+       |                              |
+       | -------- HTTP REQUEST ------>|
+       |                              |
+       | <------- HTTP RESPONSE ----- |
+       |                              |
+       |        Connection ends       |
+
+The client must make another request when it wants new data.
+
+WebSocket is different. It creates a persistent, two-way connection
+between the client and server.
+
+    CLIENT                         SERVER
+       |                              |
+       | ---- HTTP Upgrade Request -->|
+       | <--- Switching Protocols ---- |
+       |                              |
+       |========= WebSocket ==========|
+       | <------ message ------------>|
+       | ------ message ------------->|
+       | <------ message ------------>|
+       | ------ message ------------->|
+       |                              |
+
+After the connection is established, BOTH sides can send messages
+whenever they need to.
+
+This makes WebSockets useful for: - Chat applications - Live
+notifications - Online multiplayer games - Live dashboards - Real-time
+collaboration - Live tracking - Stock/crypto price updates - Typing
+indicators - Real-time status updates
+
+2. HTTP vs WEBSOCKET
+
+HTTP: Client -> Request -> Server Client <- Response <- Server
+
+WebSocket: Client <=====================> Server persistent two-way
+connection
+
+HTTP is generally better for normal REST APIs.
+
+WebSocket is useful when the server needs to continuously push real-time
+updates to the client without waiting for a new HTTP request.
+
+3. BASIC WEBSOCKET FLOW
+
+Step 1: Client initially contacts the server using HTTP.
+
+Step 2: The connection is upgraded to WebSocket.
+
+Step 3: A persistent WebSocket connection is maintained.
+
+Step 4: Client and server can exchange messages in both directions.
+
+Diagram:
+
+    Browser
+       |
+       | HTTP Upgrade
+       v
+    WebSocket Server
+       |
+       | Connection established
+       v
+    Persistent Connection
+       |
+       +---- Client sends message
+       |
+       +---- Server sends message
+       |
+       +---- Server pushes event
+       |
+       +---- Client sends event
+
+4. SIMPLE NODE.JS WEBSOCKET EXAMPLE
+
+Server:
+
+    const WebSocket = require("ws");
+
+    const server = new WebSocket.Server({ port: 8080 });
+
+    server.on("connection", (socket) => {
+        console.log("Client connected");
+
+        socket.on("message", (message) => {
+            console.log("Received:", message.toString());
+
+            socket.send("Message received");
+        });
+
+        socket.on("close", () => {
+            console.log("Client disconnected");
+        });
+    });
+
+Client:
+
+    const socket = new WebSocket("ws://localhost:8080");
+
+    socket.onopen = () => {
+        socket.send("Hello Server");
+    };
+
+    socket.onmessage = (event) => {
+        console.log(event.data);
+    };
+
+The important object here is the WebSocket connection.
+
+    Client
+       |
+       | ws://localhost:8080
+       v
+    Server
+       |
+       | socket
+       v
+    Persistent connection
+
+5. THE SCALING PROBLEM
+
+Suppose we have one WebSocket server.
+
+    Client A --------\
+    Client B ---------> Server 1
+    Client C --------/
+    Client D --------/
+
+This works.
+
+But what happens when millions of users connect?
+
+One server has limited: - CPU - RAM - Network bandwidth - Number of
+connections - Processing capacity
+
+Therefore we need SCALING.
+
+6. VERTICAL SCALING
+
+Vertical scaling means making ONE server more powerful.
+
+For example:
+
+Before:
+
+    Server
+    CPU: 2 cores
+    RAM: 4 GB
+
+After:
+
+    Server
+    CPU: 16 cores
+    RAM: 64 GB
+
+Diagram:
+
+        BEFORE                         AFTER
+
+    +----------+                  +----------------+
+    | Server   |                  | Powerful       |
+    | 2 CPU    |   ---------->    | Server         |
+    | 4 GB RAM |                  | 16 CPU         |
+    +----------+                  | 64 GB RAM      |
+                                 +----------------+
+
+Advantages: - Simple architecture - Easy to manage - No need for
+multiple application servers
+
+Disadvantages: - Hardware has a maximum limit - Expensive at higher
+sizes - Single point of failure can remain - A single server can still
+become overloaded
+
+7. HORIZONTAL SCALING
+
+Horizontal scaling means adding MORE servers.
+
+Instead of:
+
+    Clients
+       |
+       v
+    Server 1
+
+We have:
+
+                 +--> Server 1
+                 |
+    Clients --> Load Balancer
+                 |
+                 +--> Server 2
+                 |
+                 +--> Server 3
+
+If traffic increases, more servers can be added.
+
+Example:
+
+    1 server
+        |
+        v
+    3 servers
+        |
+        v
+    10 servers
+        |
+        v
+    100 servers
+
+8. VERTICAL vs HORIZONTAL SCALING
+
+VERTICAL:
+
+    More power
+        |
+        v
+    +---------+
+    | Server  |
+    | CPU ↑   |
+    | RAM ↑   |
+    +---------+
+
+HORIZONTAL:
+
+    More servers
+
+             +---------+
+             | Server 1|
+             +---------+
+
+             +---------+
+    -------> | Server 2|
+             +---------+
+
+             +---------+
+             | Server 3|
+             +---------+
+
+Simple difference:
+
+    Vertical scaling = Scale UP
+    Horizontal scaling = Scale OUT
+
+9. WHY WEBSOCKETS MAKE HORIZONTAL SCALING HARDER
+
+This is the important part.
+
+Suppose we have two WebSocket servers:
+
+                  +--> Server 1
+                  |
+    Client A --> Load Balancer
+                  |
+                  +--> Server 2
+
+Client A connects to Server 1.
+
+    Client A
+       |
+       | WebSocket connection
+       v
+    Server 1
+
+Now suppose Client B connects to Server 2.
+
+    Client B
+       |
+       | WebSocket connection
+       v
+    Server 2
+
+Now imagine Client A sends a message to Client B.
+
+Server 1 knows about Client A.
+
+Server 2 knows about Client B.
+
+But Server 1 does NOT automatically know what connections exist on
+Server 2.
+
+    Server 1                         Server 2
+    --------                         --------
+    Client A                         Client B
+       |                                |
+       +---- Message for B ----X--------+
+                         Problem
+
+The message needs to travel from Server 1 to Server 2.
+
+10. WHY A LOAD BALANCER ALONE DOES NOT SOLVE IT
+
+A load balancer distributes new connections.
+
+Example:
+
+    Client A ---> Load Balancer ---> Server 1
+    Client B ---> Load Balancer ---> Server 2
+
+But the load balancer does not automatically share the internal
+WebSocket state between Server 1 and Server 2.
+
+Each server has its own memory.
+
+    Server 1 RAM                 Server 2 RAM
+    ------------                 ------------
+    Client A                     Client B
+    socket A                     socket B
+
+These are separate application processes.
+
+We need a way for the servers to communicate.
+
+11. ENTER REDIS
+
+Redis is an in-memory data store.
+
+It is commonly used for: - Caching - Pub/Sub - Session-related data -
+Queues - Temporary data - Real-time communication coordination
+
+For WebSocket scaling, one important Redis feature is:
+
+    PUB/SUB
+
+PUB = Publish SUB = Subscribe
+
+12. REDIS PUB/SUB
+
+Think of Redis Pub/Sub like a common communication channel.
+
+    Server 1 ---- publish ----\
+                                \
+                                 Redis
+                                /     \
+                     subscribe /       \ subscribe
+                              /         \
+                         Server 2     Server 3
+
+All interested servers subscribe to a Redis channel.
+
+Example channel:
+
+    chat
+
+Server 1 publishes:
+
+    channel = "chat"
+    message = "Hello"
+
+Redis distributes that message to the servers subscribed to “chat”.
+
+13. WEBSOCKET + REDIS ARCHITECTURE
+
+A typical architecture looks like this:
+
+                         INTERNET
+                            |
+                            v
+                     +-------------+
+                     |Load Balancer|
+                     +-------------+
+                       /     |     \
+                      /      |      \
+                     v       v       v
+                +--------+ +--------+ +--------+
+                | WS     | | WS     | | WS     |
+                |Server 1| |Server 2| |Server 3|
+                +--------+ +--------+ +--------+
+                     \         |         /
+                      \        |        /
+                       \       |       /
+                        v      v      v
+                       +-------------+
+                       |    REDIS    |
+                       |   Pub/Sub   |
+                       +-------------+
+
+14. HOW REDIS SOLVES THE PROBLEM
+
+Suppose:
+
+    Client A -> Server 1
+
+and:
+
+    Client B -> Server 2
+
+Client A sends a message for Client B.
+
+STEP 1:
+
+    Client A
+       |
+       v
+    Server 1
+
+STEP 2:
+
+Server 1 publishes the event to Redis.
+
+    Server 1
+       |
+       | PUBLISH
+       v
+    Redis
+
+STEP 3:
+
+Server 2 is subscribed to the relevant Redis channel.
+
+    Redis
+       |
+       | message
+       v
+    Server 2
+
+STEP 4:
+
+Server 2 sends the message through its WebSocket connection.
+
+    Server 2
+       |
+       v
+    Client B
+
+15. COMPLETE MESSAGE FLOW
+
+    Client A
+       |
+       | WebSocket message
+       v
+    WebSocket Server 1
+       |
+       | PUBLISH
+       v
+    Redis Pub/Sub
+       |
+       | message
+       v
+    WebSocket Server 2
+       |
+       | WebSocket message
+       v
+    Client B
+
+16. WHY REDIS IS NEEDED
+
+Without Redis:
+
+    Server 1              Server 2
+       |                     |
+    Client A              Client B
+
+Server 1 does not have direct knowledge of Server 2’s clients.
+
+With Redis:
+
+    Server 1
+       |
+       v
+    +-------+
+    | Redis |
+    +-------+
+       |
+       v
+    Server 2
+
+Redis acts as a shared communication layer between the WebSocket
+servers.
+
+17. IMPORTANT CONCEPT: LOCAL MEMORY vs SHARED SYSTEM
+
+Without Redis:
+
+    Server 1 memory:
+        socket A
+        socket C
+
+    Server 2 memory:
+        socket B
+        socket D
+
+The memory is LOCAL to each server.
+
+With Redis:
+
+    Server 1 ----\
+                  |
+                  v
+                Redis
+                  ^
+                  |
+    Server 2 ----/
+
+Redis provides a common communication mechanism.
+
+Important: Redis Pub/Sub does NOT magically move the actual WebSocket
+connection from one server to another.
+
+The WebSocket connection remains on the server where it was established.
+
+Redis only helps servers communicate about events/messages.
+
+18. SOCKET CONNECTION OWNERSHIP
+
+If Client A connects to Server 1:
+
+    Client A
+       |
+       v
+    Server 1
+
+The socket is owned by Server 1.
+
+Redis cannot directly send data to Client A.
+
+Instead:
+
+    Redis --> Server 1 --> Client A
+
+This distinction is very important.
+
+Redis is NOT the WebSocket server.
+
+Redis is the communication layer between WebSocket servers.
+
+19. LOAD BALANCER + WEBSOCKET
+
+A load balancer distributes incoming connections.
+
+Example:
+
+    Client A ----\
+    Client B -----\
+    Client C ------> Load Balancer
+    Client D -----/       |
+                           |
+                 +---------+---------+
+                 |         |         |
+                 v         v         v
+              Server 1  Server 2  Server 3
+
+WebSocket connections are long-lived, so the load balancer must support
+WebSocket connections.
+
+Depending on the architecture, sticky sessions/session affinity may also
+be considered.
+
+However, sticky sessions do NOT replace Redis Pub/Sub when servers need
+to exchange real-time events.
+
+20. REDIS PUB/SUB EXAMPLE
+
+Conceptually:
+
+    Server 1:
+        PUBLISH chat "Hello"
+
+    Redis:
+        Receives "Hello"
+        Sends it to subscribers
+
+    Server 2:
+        SUBSCRIBE chat
+
+    Server 3:
+        SUBSCRIBE chat
+
+Both Server 2 and Server 3 can receive the published event.
+
+This is useful when all WebSocket servers need to know about an event.
+
+21. IMPORTANT LIMITATION OF REDIS PUB/SUB
+
+Redis Pub/Sub is primarily for real-time message distribution.
+
+If a subscriber is disconnected when a Pub/Sub message is published, the
+message is generally not stored for that subscriber.
+
+Conceptually:
+
+    Publisher ---> Redis ---> Subscriber
+
+If Subscriber is offline:
+
+    Publisher ---> Redis -X-> Subscriber
+
+The missed Pub/Sub message is not waiting in a durable queue for that
+subscriber.
+
+If durable message delivery is required, technologies/features such as
+Redis Streams or dedicated message brokers may be more appropriate.
+
+22. SIMPLE ARCHITECTURE TO REMEMBER
+
+For a small application:
+
+    Client
+      |
+      v
+    WebSocket Server
+      |
+      v
+    Database
+
+For a horizontally scaled application:
+
+                         +--> WebSocket Server 1 --+
+                         |                          |
+    Clients --> Load Balancer                       +--> Redis
+                         |                          |
+                         +--> WebSocket Server 2 --+
+                                                    |
+                                                    +--> Database
+
+23. EXAMPLE: CHAT APPLICATION
+
+Suppose there are two users:
+
+    Alice -> Server 1
+    Bob   -> Server 2
+
+Alice sends:
+
+    "Hi Bob"
+
+Flow:
+
+    Alice
+      |
+      v
+    Server 1
+      |
+      | PUBLISH
+      v
+    Redis
+      |
+      | message
+      v
+    Server 2
+      |
+      v
+    Bob
+
+Without Redis, Server 1 would need another mechanism to know that Bob’s
+connection belongs to Server 2.
+
+24. KEY TERMS
+
+WebSocket: Persistent, full-duplex communication channel between client
+and server.
+
+Full-duplex: Both client and server can send data independently.
+
+Vertical scaling: Increasing the resources of one server.
+
+Horizontal scaling: Adding more servers.
+
+Load balancer: Distributes incoming connections/traffic across servers.
+
+Redis: In-memory data store that can provide shared infrastructure such
+as Pub/Sub.
+
+Pub/Sub: Publishers send messages to channels and subscribers receive
+messages from those channels.
+
+Socket: The live WebSocket connection between a client and a server.
+
+Channel: A named Redis Pub/Sub communication topic.
+
+25. INTERVIEW-STYLE EXPLANATION
+
+Question: Why do we need Redis when scaling WebSocket servers
+horizontally?
+
+Answer:
+
+    In a horizontally scaled WebSocket system, different clients can be
+    connected to different WebSocket server instances. Each server only
+    knows about the WebSocket connections it owns. If a message received
+    by Server 1 needs to reach a client connected to Server 2, Server 1
+    needs a way to communicate with Server 2. Redis Pub/Sub can act as a
+    shared messaging layer. Server 1 publishes the event to Redis, and
+    Server 2, which is subscribed to the relevant channel, receives the
+    event and sends it to its connected client.
+
+26. ONE BIG DIAGRAM TO REMEMBER
+
+                         CLIENTS
+                       /    |    \
+                      /     |     \
+                     v      v      v
+              +-------------------------+
+              |      LOAD BALANCER      |
+              +-------------------------+
+                    /       |       \
+                   /        |        \
+                  v         v         v
+            +---------+ +---------+ +---------+
+            | WS      | | WS      | | WS      |
+            | Server 1| | Server 2| | Server 3|
+            +---------+ +---------+ +---------+
+                  \          |          /
+                   \         |         /
+                    \        |        /
+                     v       v       v
+                  +-------------------+
+                  |       REDIS       |
+                  |      PUB/SUB      |
+                  +-------------------+
+                           |
+                           v
+                     Shared events
+
+KEY IDEA:
+
+    WebSocket = client-server real-time connection
+
+    Load Balancer = distributes connections
+
+    Horizontal Scaling = multiple WebSocket servers
+
+    Redis Pub/Sub = communication between those servers
+
+27. FINAL REVISION
+
+HTTP: Request -> Response
+
+WebSocket: Persistent two-way connection
+
+Vertical scaling: Scale UP Bigger server
+
+Horizontal scaling: Scale OUT More servers
+
+Problem with horizontal WebSockets: Different clients may be connected
+to different servers.
+
+Redis: Shared communication layer
+
+Redis Pub/Sub: Server publishes event Other servers subscribe and
+receive event
+
+Most important flow:
+
+    Client
+      |
+      v
+    WebSocket Server 1
+      |
+      v
+    Redis Pub/Sub
+      |
+      v
+    WebSocket Server 2
+      |
+      v
+    Another Client
+
+28. MEMORY TRICK
+
+Remember:
+
+    WS  = TALK TO CLIENT
+    LB  = DISTRIBUTE CLIENTS
+    REDIS = TALK BETWEEN SERVERS
+
+That is the core idea behind scaling WebSocket applications.
