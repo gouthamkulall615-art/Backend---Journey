@@ -28,10 +28,19 @@
 
       // Runs when WebSocket connection is successfully established
       connection.onopen = () => {
-      messageSendButton.addEventListener('click',(ev)=>{
-        const value=messageInput.value;
-        connection.send(JSON.stringify({message:value}))
-      })
+        connection.onmessage = (message) => {
+          // console.log("message revc.", message);
+          const rawData = message.data;
+          const parsedData = JSON.parse(rawData);
+          const text = parsedData.message;
+          const li = document.createElement("li");
+          li.innerHTML = text;
+          messagesContainer.appendChild(li);
+        };
+        messageSendButton.addEventListener("click", (ev) => {
+          const value = messageInput.value;
+          connection.send(JSON.stringify({ message: value }));
+        });
       };
 
       // Runs when a message is received from the server

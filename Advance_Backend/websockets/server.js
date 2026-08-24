@@ -28,9 +28,13 @@ wsServer.on("connection", (websocket) => {
   // When client sends a message
   websocket.on("message", (data) => {
     console.log("WebSocket message received:", data.toString());
+    // websocket.send(data.toString());
+    //broadcast the message to all the clients
+    wsServer.clients.forEach((client) => {
+      client.send(data.toString());
+    });
 
     // Send response back to client
-    
   });
 
   // When connection closes
